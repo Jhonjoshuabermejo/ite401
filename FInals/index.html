@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map with Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: white;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 90%;
+            max-width: 900px;
+        }
+        .dashboard {
+            background: linear-gradient(145deg, #222, #111);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 100%;
+            box-shadow: 5px 5px 15px rgba(255, 0, 0, 0.6);
+            text-align: center;
+        }
+        h2 {
+            color: red;
+            text-shadow: 2px 2px 5px rgba(255, 0, 0, 0.8);
+        }
+        #map {
+            height: 450px;
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(255, 0, 0, 0.6);
+        }
+        .input-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+        }
+        input {
+            padding: 12px;
+            width: 70%;
+            border: 2px solid red;
+            border-radius: 8px;
+            background: #333;
+            color: white;
+            outline: none;
+            box-shadow: inset 2px 2px 6px rgba(255, 0, 0, 0.4);
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            background: red;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: bold;
+            box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.7);
+        }
+        button:hover {
+            background: darkred;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.9);
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        li {
+            cursor: pointer;
+            padding: 12px;
+            background: #333;
+            border-radius: 8px;
+            border: 2px solid red;
+            transition: 0.3s;
+            color: white;
+            box-shadow: 2px 2px 6px rgba(255, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        li button {
+            padding: 5px 10px;
+            background: red;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        li button:hover {
+            background: darkred;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard">
+            <h2>Interactive Map</h2>
+            <div class="input-container">
+                <input type="text" id="locationInput" placeholder="Enter a location">
+                <button id="addLocationButton">Add Location</button>
+            </div>
+            <ul id="locationsList"></ul>
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        const locationInput = document.getElementById("locationInput");
+        const addLocationButton = document.getElementById("addLocationButton");
+        const locationsList = document.getElementById("locationsList");
+        let locationsArray = []; 
+        let map;
+
+        const locationCoordinates = {
+            "manila": [14.599512, 120.984222],
+            "cebu": [10.3157, 123.8854],
+            "davao": [7.1907, 125.4553],
+            "baguio": [16.4023, 120.596],
+            "iloilo": [10.7202, 122.5621],
+            "bacolod": [10.6765, 122.9509],
+            "zamboanga": [6.9214, 122.079],
+            "cagayan de oro": [8.4542, 124.6319],
+            "pampanga": [15.0794, 120.6191],
+            "quezon city": [14.676, 121.0437],
+            "legazpi": [13.1391, 123.7438],
+            "dumaguete": [9.3068, 123.3054],
+            "general santos": [6.1164, 125.1716]
+        };
+
+        function initializeMap() {
+            map = L.map("map").setView([12.8797, 121.774], 6);
+            L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution: "© OpenStreetMap contributors"
+            }).addTo(map);
+        }
+
+        function addLocation() {
+            const location = locationInput.value.trim().toLowerCase();
+            if (!location || locationsArray.includes(location)) {
+                alert("Location already exists or is invalid.");
+                return;
+            }
+            
+            locationsArray.push(location);
+            locationInput.value = "";
+            updateLocationsList();
+            updateMap(location);
+        }
+
+        function updateLocationsList() {
+            locationsList.innerHTML = "";
+            locationsArray.forEach((location) => {
+                const li = document.createElement("li");
+                li.textContent = location.charAt(0).toUpperCase() + location.slice(1);
+                li.addEventListener("click", () => updateMap(location));
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "X";
+                deleteBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    deleteLocation(location);
+                });
+
+                li.appendChild(deleteBtn);
+                locationsList.appendChild(li);
+            });
+        }
+
+        function updateMap(location) {
+            const coordinates = locationCoordinates[location];
+            if (coordinates) {
+                map.setView(coordinates, 8);
+                L.marker(coordinates).addTo(map).bindPopup(location.charAt(0).toUpperCase() + location.slice(1)).openPopup();
+            } else {
+                alert("Location not found on the map.");
+            }
+        }
+
+        function deleteLocation(location) {
+            locationsArray = locationsArray.filter(item => item !== location);
+            updateLocationsList();
+        }
+
+        addLocationButton.addEventListener("click", addLocation);
+        window.onload = initializeMap;
+    </script>
+</body>
+</html>
